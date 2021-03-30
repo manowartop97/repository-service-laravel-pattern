@@ -66,9 +66,7 @@ trait Crudable
     {
         return DB::transaction(function () use ($keyOrModel, $data) {
 
-            $model = !$keyOrModel instanceof Model
-                ? $this->findOrFail($keyOrModel)
-                : $keyOrModel;
+            $model = $this->resolveModel($keyOrModel);
 
             if (!$model->fill($data)->save()) {
                 return null;
@@ -101,9 +99,7 @@ trait Crudable
     public function delete($keyOrModel): bool
     {
         return DB::transaction(function () use ($keyOrModel) {
-            $model = !$keyOrModel instanceof Model
-                ? $this->findOrFail($keyOrModel)
-                : $keyOrModel;
+            $model = $this->resolveModel($keyOrModel);
 
             return !is_null($model->delete());
         });

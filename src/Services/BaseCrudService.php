@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Manowartop\ServiceRepositoryPattern\Services;
 
 use Exception;
@@ -8,6 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Manowartop\ServiceRepositoryPattern\Exceptions\Service\ServiceException;
 use Manowartop\ServiceRepositoryPattern\Repositories\Contracts\BaseRepositoryInterface;
 use Manowartop\ServiceRepositoryPattern\Services\Contracts\BaseCrudServiceInterface;
 
@@ -69,10 +69,15 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
      *
      * @param array $data
      * @return Model|null
+     * @throws ServiceException
      */
     public function create(array $data): ?Model
     {
-        return $this->repository->create($data);
+        if (is_null($model = $this->repository->create($data))) {
+            throw new ServiceException('Error while creating model');
+        }
+
+        return $model;
     }
 
     /**
@@ -80,10 +85,17 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
      *
      * @param array $attributes
      * @return Collection
+     * @throws ServiceException
      */
     public function createMany(array $attributes): Collection
     {
-        return $this->repository->createMany($attributes);
+        $models = $this->repository->createMany($attributes);
+
+        if ($models->isEmpty()) {
+            throw new ServiceException('Error while creating multiple models');
+        }
+
+        return $models;
     }
 
     /**
@@ -95,7 +107,11 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
      */
     public function updateOrCreate(array $attributes, array $data): ?Model
     {
-        return $this->repository->updateOrCreate($attributes, $data);
+        if (is_null($model = $this->repository->updateOrCreate($attributes, $data))) {
+            throw new ServiceException('Error while creating or updating the model');
+        }
+
+        return $model;
     }
 
     /**
@@ -119,7 +135,11 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
      */
     public function delete($keyOrModel): bool
     {
-        return $this->repository->delete($keyOrModel);
+        if (!$this->repository->delete($keyOrModel)) {
+            throw new ServiceException('Error while deleting model');
+        }
+
+        return true;
     }
 
     /**

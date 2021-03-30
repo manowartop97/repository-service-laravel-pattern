@@ -101,15 +101,6 @@ interface BaseRepositoryInterface
     public function getAllPaginated(array $search = [], int $pageSize = 15): LengthAwarePaginator;
 
     /**
-     * Find all models by params
-     *
-     * @param array $attributes
-     * @return Collection
-     * @throws WrongSearchParametersException
-     */
-    public function findMany(array $attributes): Collection;
-
-    /**
      * Find first model
      *
      * @param array $attributes

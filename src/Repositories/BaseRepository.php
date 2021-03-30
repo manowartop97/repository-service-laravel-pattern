@@ -68,4 +68,17 @@ abstract class BaseRepository implements BaseRepositoryInterface
             throw new InvalidModelClassException("{$this->modelClass} is not an instance of Model");
         }
     }
+
+    /**
+     * Resolve model by key or return the model instance back
+     *
+     * @param $keyOrModel
+     * @return Model
+     */
+    protected function resolveModel($keyOrModel): Model
+    {
+        return !$keyOrModel instanceof Model
+            ? $this->findOrFail($keyOrModel)
+            : $keyOrModel;
+    }
 }

@@ -208,7 +208,6 @@ trait Queryable
                     break;
                 default:
                     throw new WrongSearchParametersException("Operator '{$attributeData[1]}' is not supported or wrong");
-                    break;
             }
         }
 
