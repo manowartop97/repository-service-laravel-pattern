@@ -10,6 +10,9 @@ use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Manowartop\ServiceRepositoryPattern\Exceptions\Repository\InvalidModelClassException;
+use Manowartop\ServiceRepositoryPattern\Exceptions\Repository\RepositoryException;
+use Manowartop\ServiceRepositoryPattern\Exceptions\Repository\WrongSearchParametersException;
 use Manowartop\ServiceRepositoryPattern\Repositories\Contracts\BaseCachableRepositoryInterface;
 
 /**
@@ -26,12 +29,33 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
     protected $cacheTtl = 60;
 
     /**
+     * @var array
+     */
+    protected $cacheTags = [];
+
+    /**
+     * BaseCachableRepository constructor.
+     * @throws RepositoryException
+     * @throws InvalidModelClassException
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->cacheTags = $this->getCacheTags();
+
+        if (empty($this->cacheTags)) {
+            throw new RepositoryException('Cache tags could not be empty');
+        }
+    }
+
+    /**
      * @param array $search
      * @return Collection
      */
     public function getAll(array $search = []): Collection
     {
-        return Cache::remember(
+        return Cache::tags($this->cacheTags)->remember(
             $this->getCacheKeyFromParams($search, 'all'),
             $this->getTtl(),
             function () use ($search) {
@@ -49,7 +73,7 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
      */
     public function getAllPaginated(array $search = [], int $pageSize = 15): LengthAwarePaginator
     {
-        return Cache::remember(
+        return Cache::tags($this->cacheTags)->remember(
             $this->getCacheKeyFromParams($search, 'paginated'),
             $this->getTtl(),
             function () use ($search, $pageSize) {
@@ -63,10 +87,11 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
      *
      * @param array $attributes
      * @return Model|null
+     * @throws WrongSearchParametersException
      */
     public function findFirst(array $attributes): ?Model
     {
-        return Cache::remember(
+        return Cache::tags($this->cacheTags)->remember(
             $this->getCacheKeyFromParams($attributes, 'first'),
             $this->getTtl(),
             function () use ($attributes) {
@@ -83,7 +108,7 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
      */
     public function find($key): ?Model
     {
-        return Cache::remember(
+        return Cache::tags($this->cacheTags)->remember(
             $this->getCacheKeyFromParams([], $key),
             $this->getTtl(),
             function () use ($key) {
@@ -101,7 +126,7 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
      */
     public function findOrFail($value, ?string $column = null): Model
     {
-        return Cache::remember(
+        return Cache::tags($this->cacheTags)->remember(
             $this->getCacheKeyFromParams(
                 is_null($column) ? [] : [$column => $value],
                 $value
@@ -123,6 +148,7 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
     {
         $model = parent::create($data);
 
+        Cache::tags($this->cacheTags)->flush();
         $this->cacheModel($model);
 
         return $model;
@@ -137,6 +163,8 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
     public function createMany(array $attributes): SupportCollection
     {
         $models = parent::createMany($attributes);
+
+        Cache::tags($this->cacheTags)->flush();
 
         foreach ($models as $model) {
             $this->cacheModel($model);
@@ -156,6 +184,8 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
     {
         $model = parent::update($keyOrModel, $data);
 
+        Cache::tags($this->cacheTags)->flush();
+
         $this->cacheModel($model);
 
         return $model;
@@ -171,6 +201,8 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
     public function updateOrCreate(array $attributes, array $data): ?Model
     {
         $model = parent::updateOrCreate($attributes, $data);
+
+        Cache::tags($this->cacheTags)->flush();
 
         $this->cacheModel($model);
 
@@ -191,9 +223,7 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
                 ? $this->findOrFail($keyOrModel)
                 : $keyOrModel;
 
-            Cache::forget(
-                $this->getCacheKeyFromParams([], $model->getKey())
-            );
+            Cache::tags($this->cacheTags)->flush();
 
             return !is_null($model->delete());
         });
@@ -209,10 +239,8 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
      */
     protected function getCacheKeyFromParams(array $params = [], string $methodNameKey = 'default'): string
     {
-        $key = $this->getModelBasedCacheKey().'.'.$methodNameKey;
-
         ksort($params);
-        return $key . '.' . (implode(
+        return $methodNameKey . '.' . (implode(
                 '|',
                 array_map(function ($key, $value) {
                     if (!is_array($value)) {
@@ -225,13 +253,13 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
     }
 
     /**
-     * Get a part of cache key name from a model class
+     * Get cache tags based on model name
      *
-     * @return string
+     * @return array
      */
-    protected function getModelBasedCacheKey(): string
+    protected function getCacheTags(): array
     {
-        return Str::camel(last(explode('\\', $this->modelClass)));
+        return [Str::camel(last(explode('\\', $this->modelClass)))];
     }
 
     /**
@@ -250,7 +278,7 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
             ? $this->findOrFail($keyOrModel)
             : $keyOrModel;
 
-        Cache::put(
+        Cache::tags($this->cacheTags)->put(
             $this->getCacheKeyFromParams([], $model->getKey()),
             $model,
             $this->getTtl()
