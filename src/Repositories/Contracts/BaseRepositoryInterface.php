@@ -110,6 +110,15 @@ interface BaseRepositoryInterface
     public function findFirst(array $attributes): ?Model;
 
     /**
+     * Find all models by params
+     *
+     * @param array $attributes
+     * @return Collection
+     * @throws WrongSearchParametersException
+     */
+    public function findMany(array $attributes): Collection;
+
+    /**
      * Set with
      *
      * @param array $with
