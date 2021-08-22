@@ -145,7 +145,13 @@ trait Queryable
      */
     protected function getFilteredQuery(array $search = []): Builder
     {
-        return $this->getQuery()->orderBy('id', 'desc');
+        $query = $this->getQuery();
+
+        if (count($search)) {
+            $query->where($search);
+        }
+
+        return $query->orderBy('id', 'desc');
     }
 
     /**
