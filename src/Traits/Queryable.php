@@ -163,7 +163,7 @@ trait Queryable
         $queryString = $this->getRequestQuery($this->queryKeyToSearchInAllColumns);
         $filterColumns = array_replace([], $this->filterColumns);
 
-        if (! is_null($queryString) && $queryString !== '' && count($filterColumns)) {
+        if ($this->stringNotEmpty($queryString) && count($filterColumns)) {
 
             $query->where(
                 array_shift($filterColumns),
@@ -191,7 +191,7 @@ trait Queryable
 
             $queryString = $this->getRequestQuery($column);
 
-            if (! is_null($queryString) && $queryString !== '')
+            if ($this->stringNotEmpty($queryString))
                 $query->where(
                     array_shift($filterColumns),
                     'LIKE',
@@ -199,6 +199,11 @@ trait Queryable
                 );
         }
         return $query;
+    }
+
+    private function stringNotEmpty($string)
+    {
+        return ! is_null($string) && $string !== '';
     }
 
     private function getRequestQuery($column)
