@@ -32,6 +32,34 @@ abstract class BaseRepository implements BaseRepositoryInterface
     protected $model;
 
     /**
+     * List of columns of the model to inject search queries though get request.
+     *
+     * This search is only used by getAll() and getAllPaginated()
+     *
+     * @var array
+    */
+    protected $filterColumns = [];
+
+    /**
+     * Key to use in get request to hold search query.
+     *
+     * Search query will be used to search from all columns listed in $filterColumns.
+     *
+     * @var string
+    */
+    protected $queryKeyToSearchInAllColumns = 'q';
+
+    /**
+     * @var string
+    */
+    protected $orderByColumn = 'id';
+
+    /**
+     * @var string
+     */
+    protected $orderByDirection = 'desc';
+
+    /**
      * BaseRepository constructor.
      * @throws InvalidModelClassException
      */

@@ -72,7 +72,7 @@ trait Queryable
      */
     public function getAll(array $search = []): Collection
     {
-        return $this->getFilteredQuery($search)->get();
+        return $this->getFilteredQuery()->get();
     }
 
     /**
@@ -84,7 +84,7 @@ trait Queryable
      */
     public function getAllPaginated(array $search = [], int $pageSize = 15): LengthAwarePaginator
     {
-        return $this->getFilteredQuery($search)->paginate($pageSize);
+        return $this->getFilteredQuery()->paginate($pageSize);
     }
 
     /**
@@ -142,16 +142,71 @@ trait Queryable
      *
      * @param array $search
      * @return Builder
+     * @throws \Exception
      */
-    protected function getFilteredQuery(array $search = []): Builder
+    protected function getFilteredQuery(): Builder
     {
         $query = $this->getQuery();
 
-        if (count($search)) {
-            $query->where($search);
+        $query = $this->loadOneInManySearchQuery($query);
+
+        $query = $this->loadManyInManySearchQuery($query);
+
+        return $query->orderBy($this->orderByColumn, $this->orderByDirection);
+    }
+
+    /**
+     * @throws \Exception
+     */
+    private function loadOneInManySearchQuery($query): Builder
+    {
+        $queryString = $this->getRequestQuery($this->queryKeyToSearchInAllColumns);
+        $filterColumns = array_replace([], $this->filterColumns);
+
+        if (! is_null($queryString) && $queryString !== '' && count($filterColumns)) {
+
+            $query->where(
+                array_shift($filterColumns),
+                'LIKE',
+                "%{$queryString}%"
+            );
+
+            foreach ($filterColumns as $column)
+                $query->orWhere(
+                    $column,
+                    'LIKE',
+                    "%{$queryString}%"
+                );
         }
 
-        return $query->orderBy('id', 'desc');
+        return $query;
+    }
+
+    /**
+     * @throws \Exception
+     */
+    private function loadManyInManySearchQuery($query): Builder
+    {
+        foreach ($this->filterColumns as $column) {
+
+            $queryString = $this->getRequestQuery($column);
+
+            if (! is_null($queryString) && $queryString !== '')
+                $query->where(
+                    array_shift($filterColumns),
+                    'LIKE',
+                    "%{$queryString}%"
+                );
+        }
+        return $query;
+    }
+
+    private function getRequestQuery($column)
+    {
+        if (! key_exists($column, $this->model->getFillable()))
+            throw new \Exception('Invalid model column provided.');
+
+        return request()->query($column);
     }
 
     /**
