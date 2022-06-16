@@ -12,14 +12,14 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Manowartop",
-            "email": "manowartop97@gmail.com"
+            "name": "Andrew Dobrovolsky",
+            "email": "adobrovolsky97@gmail.com"
         }
     ],
     "require": {
         "php": ">=7.2",
-        "illuminate/database": "^5.0 || ^6.0 || ^7.0 || ^8.0",
-        "illuminate/support": "^5.0 || ^6.0|| ^7.0 || ^8.0"
+        "illuminate/database": "^5.0 || ^6.0 || ^7.0 || ^8.0 || ^9.0",
+        "illuminate/support": "^5.0 || ^6.0|| ^7.0 || ^8.0 || ^9.0"
     },
     "autoload": {
         "psr-4": {
