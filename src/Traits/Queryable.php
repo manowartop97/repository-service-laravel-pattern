@@ -145,7 +145,7 @@ trait Queryable
      */
     protected function getFilteredQuery(array $search = []): Builder
     {
-        return $this->getQuery()->orderBy('id', 'desc');
+        return $this->getQuery()->orderBy($this->model->getKeyName(), 'desc');
     }
 
     /**
