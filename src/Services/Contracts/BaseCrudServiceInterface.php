@@ -8,6 +8,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\LazyCollection;
 
 /**
  * Interface BaseCrudServiceInterface
@@ -31,6 +32,14 @@ interface BaseCrudServiceInterface
      * @return EloquentCollection
      */
     public function getAll(array $search = []): EloquentCollection;
+
+    /**
+     * Get all records as lazy collection (cursor)
+     *
+     * @param array $search
+     * @return LazyCollection
+     */
+    public function getAllAsCursor(array $search = []): LazyCollection;
 
     /**
      * Find or fail the model

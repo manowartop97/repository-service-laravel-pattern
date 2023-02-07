@@ -6,7 +6,7 @@ use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\LazyCollection;
 use Manowartop\ServiceRepositoryPattern\Exceptions\Repository\WrongSearchParametersException;
 
 /**
@@ -24,12 +24,12 @@ interface BaseRepositoryInterface
     public function create(array $data): ?Model;
 
     /**
-     * Create many
+     * Insert records
      *
-     * @param array $attributes
-     * @return Collection
+     * @param array $data
+     * @return bool
      */
-    public function createMany(array $attributes): SupportCollection;
+    public function insert(array $data): bool;
 
     /**
      * Update model
@@ -59,14 +59,6 @@ interface BaseRepositoryInterface
     public function delete($keyOrModel): bool;
 
     /**
-     * Delete many models
-     *
-     * @param array $keysOrModels
-     * @return void
-     */
-    public function deleteMany(array $keysOrModels): void;
-
-    /**
      * Find model by PK
      *
      * @param int|string $key
@@ -90,6 +82,14 @@ interface BaseRepositoryInterface
      * @return Collection
      */
     public function getAll(array $search = []): Collection;
+
+    /**
+     * Get filtered collection as cursor output
+     *
+     * @param array $search
+     * @return LazyCollection
+     */
+    public function getAllCursor(array $search = []): LazyCollection;
 
     /**
      * Get paginated data

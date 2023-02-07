@@ -6,9 +6,7 @@ use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Manowartop\ServiceRepositoryPattern\Exceptions\Repository\InvalidModelClassException;
 use Manowartop\ServiceRepositoryPattern\Exceptions\Repository\RepositoryException;
@@ -155,25 +153,6 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
     }
 
     /**
-     * Create many
-     *
-     * @param array $attributes
-     * @return Collection
-     */
-    public function createMany(array $attributes): SupportCollection
-    {
-        $models = parent::createMany($attributes);
-
-        Cache::tags($this->cacheTags)->flush();
-
-        foreach ($models as $model) {
-            $this->cacheModel($model);
-        }
-
-        return $models;
-    }
-
-    /**
      * Update model
      *
      * @param Model|mixed $keyOrModel
@@ -218,15 +197,13 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
      */
     public function delete($keyOrModel): bool
     {
-        return DB::transaction(function () use ($keyOrModel) {
-            $model = !$keyOrModel instanceof Model
-                ? $this->findOrFail($keyOrModel)
-                : $keyOrModel;
+        $model = !$keyOrModel instanceof Model
+            ? $this->findOrFail($keyOrModel)
+            : $keyOrModel;
 
-            Cache::tags($this->cacheTags)->flush();
+        Cache::tags($this->cacheTags)->flush();
 
-            return !is_null($model->delete());
-        });
+        return !is_null($model->delete());
     }
 
     /**
@@ -244,10 +221,10 @@ class BaseCachableRepository extends BaseRepository implements BaseCachableRepos
                 '|',
                 array_map(function ($key, $value) {
                     if (!is_array($value)) {
-                        return "{$key}={$value}";
+                        return "$key=$value";
                     }
 
-                    return "{$value[0]}=" . ($value[2] ?? $value[1]);
+                    return "$value[0]=" . ($value[2] ?? $value[1]);
                 }, array_keys($params), array_values($params))
             ));
     }

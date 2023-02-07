@@ -3,10 +3,7 @@
 namespace Manowartop\ServiceRepositoryPattern\Traits;
 
 use Exception;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection as SupportCollection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Trait Crudable
@@ -22,37 +19,27 @@ trait Crudable
      */
     public function create(array $data): ?Model
     {
-        return DB::transaction(function () use ($data) {
-            /** @var Model $model */
-            $model = resolve($this->modelClass);
+        /** @var Model $model */
+        $model = resolve($this->modelClass);
 
-            if (!$model->fill($data)->save()) {
-                return null;
-            }
+        if (!$model->fill($data)->save()) {
+            return null;
+        }
 
-            $model->refresh();
+        $model->refresh();
 
-            return $model;
-        });
+        return $model;
     }
 
     /**
-     * Create many
+     * Insert records
      *
-     * @param array $attributes
-     * @return Collection
+     * @param array $data
+     * @return bool
      */
-    public function createMany(array $attributes): SupportCollection
+    public function insert(array $data): bool
     {
-        return DB::transaction(function () use ($attributes) {
-            $models = collect();
-
-            foreach ($attributes as $data) {
-                $models->push($this->create($data));
-            }
-
-            return $models;
-        });
+        return $this->getQuery()->insert($data);
     }
 
     /**
@@ -64,17 +51,13 @@ trait Crudable
      */
     public function update($keyOrModel, array $data): ?Model
     {
-        return DB::transaction(function () use ($keyOrModel, $data) {
+        $model = $this->resolveModel($keyOrModel);
 
-            $model = $this->resolveModel($keyOrModel);
+        if (!$model->update($data)) {
+            return null;
+        }
 
-            if (!$model->fill($data)->save()) {
-                return null;
-            }
-
-            $model->refresh();
-            return $model;
-        });
+        return $model->refresh();
     }
 
     /**
@@ -98,25 +81,6 @@ trait Crudable
      */
     public function delete($keyOrModel): bool
     {
-        return DB::transaction(function () use ($keyOrModel) {
-            $model = $this->resolveModel($keyOrModel);
-
-            return !is_null($model->delete());
-        });
-    }
-
-    /**
-     * Delete many models
-     *
-     * @param array $keysOrModels
-     * @return void
-     */
-    public function deleteMany(array $keysOrModels): void
-    {
-        DB::transaction(function () use ($keysOrModels) {
-            foreach ($keysOrModels as $keyOrModel) {
-                $this->delete($keyOrModel);
-            }
-        });
+        return !is_null($this->resolveModel($keyOrModel)->delete());
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\LazyCollection;
 use Manowartop\ServiceRepositoryPattern\Exceptions\Repository\WrongSearchParametersException;
 use Manowartop\ServiceRepositoryPattern\Models\BaseModel;
 use Manowartop\ServiceRepositoryPattern\Repositories\Contracts\BaseRepositoryInterface;
@@ -73,6 +74,17 @@ trait Queryable
     public function getAll(array $search = []): Collection
     {
         return $this->getFilteredQuery($search)->get();
+    }
+
+    /**
+     * Get filtered collection as cursor output
+     *
+     * @param array $search
+     * @return LazyCollection
+     */
+    public function getAllCursor(array $search = []): LazyCollection
+    {
+        return $this->getFilteredQuery($search)->cursor();
     }
 
     /**
@@ -183,7 +195,7 @@ trait Queryable
                         throw new WrongSearchParametersException("Search attributes should be like [attribute, operator, value]");
                     }
 
-                    $query->where($attributeData[0], $attributeData[1], ($attributeData[0] === 'like' ? "%{$attributeData[2]}%" : $attributeData[2]));
+                    $query->where($attributeData[0], $attributeData[1], ($attributeData[0] === 'like' ? "%$attributeData[2]%" : $attributeData[2]));
                     break;
                 case 'between':
                     if (!is_array($attributeData[2])) {
@@ -207,7 +219,7 @@ trait Queryable
                         : $query->whereNotNull($attributeData[0]);
                     break;
                 default:
-                    throw new WrongSearchParametersException("Operator '{$attributeData[1]}' is not supported or wrong");
+                    throw new WrongSearchParametersException("Operator '$attributeData[1]' is not supported or wrong");
             }
         }
 

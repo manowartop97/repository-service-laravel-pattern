@@ -7,6 +7,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\LazyCollection;
 use Manowartop\ServiceRepositoryPattern\Exceptions\Service\ServiceException;
 use Manowartop\ServiceRepositoryPattern\Repositories\Contracts\BaseRepositoryInterface;
 use Manowartop\ServiceRepositoryPattern\Services\Contracts\BaseCrudServiceInterface;
@@ -54,6 +56,17 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
     }
 
     /**
+     * Get all records as lazy collection (cursor)
+     *
+     * @param array $search
+     * @return LazyCollection
+     */
+    public function getAllAsCursor(array $search = []): LazyCollection
+    {
+        return $this->repository->getAllCursor($search);
+    }
+
+    /**
      * Find or fail the model
      *
      * @param $key
@@ -89,13 +102,19 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
      */
     public function createMany(array $attributes): Collection
     {
-        $models = $this->repository->createMany($attributes);
-
-        if ($models->isEmpty()) {
-            throw new ServiceException('Error while creating multiple models');
+        if (empty($attributes)) {
+            throw new ServiceException('Data is empty');
         }
 
-        return $models;
+        return DB::transaction(function () use ($attributes) {
+            $models = collect();
+
+            foreach ($attributes as $data) {
+                $models->push($this->create($data));
+            }
+
+            return $models;
+        });
     }
 
     /**
@@ -104,6 +123,7 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
      * @param array $attributes
      * @param array $data
      * @return Model|null
+     * @throws ServiceException
      */
     public function updateOrCreate(array $attributes, array $data): ?Model
     {
@@ -150,6 +170,10 @@ abstract class BaseCrudService implements BaseCrudServiceInterface
      */
     public function deleteMany(array $keysOrModels): void
     {
-        $this->repository->deleteMany($keysOrModels);
+        DB::transaction(function () use ($keysOrModels) {
+            foreach ($keysOrModels as $keyOrModel) {
+                $this->delete($keyOrModel);
+            }
+        });
     }
 }
